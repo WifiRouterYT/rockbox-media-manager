@@ -2,6 +2,7 @@ import { createSignal, onCleanup } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
 import {TopBar} from "./components/TopBar.jsx";
+import {MediaBar} from "./components/MediaBar.jsx";
 
 function App() {
   const [greetMsg, setGreetMsg] = createSignal("");
@@ -59,6 +60,7 @@ function App() {
           <p>yah</p>
         </div>
       </div>
+      <MediaBar></MediaBar>
     </main>
   );
 }

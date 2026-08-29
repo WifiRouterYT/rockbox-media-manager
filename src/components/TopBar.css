@@ -1,20 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+@import url('../App.css');
 
 :root {
-  --bg-bar:       #1c1f24;
-  --bg-hover:     #262a31;
-  --bg-active:    #2f343c;
-  --border:       #2a2e35;
-  --text:         #e4e6eb;
-  --text-muted:   #8b909a;
-  --text-faint:   #565b64;
-  --accent:       #5ee6a8;
-  --accent-dim:   #33473d;
-
-  --font-ui: "Poppins", sans-serif;
-  --font-mono: "IBM Plex Mono", monospace;
-
-
   --bar-height: 34px;
   --bar-pad-x: 8px;
 }
@@ -26,9 +12,10 @@
   height: var(--bar-height);
   padding: 0 var(--bar-pad-x);
   background: var(--bg-bar);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px solid var(--border);
   font-family: var(--font-ui);
   user-select: none;
+  width: calc(100% - 2px); /* couldn't tell ya why but it overextends the view width by 2 pixels and creates a scroll bar */
 }
 
 /* ---- menu bar (left) ---- */
@@ -132,7 +119,7 @@
   height: 100%;
   padding: 0 10px;
   transition: width 120ms ease, background 120ms ease;
-  border-left: 1px solid var(--border);
+  border-left: 2px solid var(--border);
   margin-right: -10px;
 }
 

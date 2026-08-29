@@ -1,0 +1,77 @@
+@import url('../App.css');
+
+.media-bar {
+    height: 75px;
+    width: 100%;
+    border-top: 2px solid var(--border);
+}
+
+.media-bar .controls {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: calc(100% - 5px);
+}
+
+.media-bar .controls .section {
+    flex: 1;
+    height: 100%;
+}
+
+.media-bar .controls .one {
+
+}
+
+.media-bar .controls .two {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    column-gap: 16px;
+    color: var(--text-muted);
+}
+
+.media-bar .controls .two * {
+    cursor: pointer;
+    transition: color .075s ease;
+}
+
+.media-bar .controls .two *:hover {
+    color: var(--text);
+}
+
+.media-bar .controls .two .icon-big {
+    font-size: 36px;
+}
+
+.media-bar .controls .two .icon-small {
+    font-size: 20px;
+}
+
+.media-bar .controls .two .active {
+    color: var(--accent) !important;
+}
+
+.media-bar .controls .disabled {
+    color: var(--text-faint) !important;
+    cursor: not-allowed !important;
+}
+
+.media-bar .controls .disabled * {
+    color: var(--text-faint) !important;
+    cursor: not-allowed !important;
+}
+
+.media-bar .controls .disabled:active {
+    pointer-events: none;
+}
+
+.media-bar .controls .three {
+
+}
+
+.media-bar .progress-bar {
+    width: 100%;
+    height: 5px;
+    background-color: #00ff00; /* temporary testing color */
+}
