@@ -5,14 +5,6 @@ import {TopBar} from "./components/TopBar.jsx";
 import {MediaBar} from "./components/MediaBar.jsx";
 
 function App() {
-  const [greetMsg, setGreetMsg] = createSignal("");
-  const [name, setName] = createSignal("");
-
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name: name() }));
-  }
-
   function handleSearch(query) {
     console.log("searching for:", query);
   }
@@ -48,6 +40,11 @@ function App() {
     document.removeEventListener('mouseup', handleMouseUp);
   });
 
+  async function scanDevices() {
+    const result = await invoke('scan_for_devices');
+    console.log(result);
+  }
+
   return (
     <main>
       <TopBar onSearch={handleSearch} onMenuAction={handleMenuAction}/>
@@ -57,7 +54,7 @@ function App() {
         </div>
         <div class="divider" onMouseDown={startDrag} />
         <div class="content">
-          <p>yah</p>
+          <button onClick={scanDevices}>scan for rockbocks</button>
         </div>
       </div>
       <MediaBar></MediaBar>
