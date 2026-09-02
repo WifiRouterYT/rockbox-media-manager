@@ -52,6 +52,37 @@ const MENUS = [
     id: "library",
     label: "Library",
     items: [
+      {
+        label: "View",
+        submenu: [
+          { label: "List", radioGroup: "view", value: "list" },
+          { label: "Grid", radioGroup: "view", value: "grid" },
+          { label: "Compact", radioGroup: "view", value: "compact" },
+        ],
+      },
+      {
+        label: "Sort By",
+        submenu: [
+          { label: "Artist", radioGroup: "sort", value: "artist" },
+          { label: "Album", radioGroup: "sort", value: "album" },
+          { label: "Year", radioGroup: "sort", value: "year" },
+          { label: "Date Added", radioGroup: "sort", value: "date_added" },
+          { label: "Genre", radioGroup: "sort", value: "genre" },
+        ],
+      },
+      {
+        label: "Group By",
+        submenu: [
+          { label: "No Grouping", radioGroup: "group", value: "none" },
+          { label: "Artist", radioGroup: "group", value: "artist" },
+          { label: "Album Artist", radioGroup: "group", value: "album" },
+          { label: "Year", radioGroup: "group", value: "year" },
+          { label: "Decade", radioGroup: "group", value: "decade" },
+          { label: "Date Added", radioGroup: "group", value: "date_added" },
+          { label: "Genre", radioGroup: "group", value: "genre" },
+        ],
+      },
+      { sep: true },
       { label: "Scan for Changes", shortcut: "⌃R" },
       { label: "Rebuild Database" },
       { sep: true },
@@ -86,14 +117,45 @@ const MENUS = [
 
 export function TopBar(props) {
   const [openMenu, setOpenMenu] = createSignal(null);
+  const [openSubmenu, setOpenSubmenu] = createSignal(null);
   const [query, setQuery] = createSignal("");
+  const [viewMode, setViewMode] = createSignal("grid");
+  const [sortMode, setSortMode] = createSignal("artist");
+  const [groupMode, setGroupMode] = createSignal("date_added");
   let barRef;
 
+  // maps a radioGroup name -> [getter, setter, prop callback name]
+  const RADIO_STATE = {
+    view: [viewMode, setViewMode, "onViewChange"],
+    sort: [sortMode, setSortMode, "onSortChange"],
+    group: [groupMode, setGroupMode, "onGroupChange"],
+  };
+
+  function subKey(menuId, label) {
+    return `${menuId}:${label}`;
+  }
+
+  function isChecked(sub) {
+    const [get] = RADIO_STATE[sub.radioGroup];
+    return get() === sub.value;
+  }
+
+  function openTopMenu(id) {
+    setOpenMenu(id);
+    setOpenSubmenu(null);
+  }
+
   function handleDocClick(e) {
-    if (barRef && !barRef.contains(e.target)) setOpenMenu(null);
+    if (barRef && !barRef.contains(e.target)) {
+      setOpenMenu(null);
+      setOpenSubmenu(null);
+    }
   }
   function handleDocKey(e) {
-    if (e.key === "Escape") setOpenMenu(null);
+    if (e.key === "Escape") {
+      setOpenMenu(null);
+      setOpenSubmenu(null);
+    }
   }
 
   onMount(() => {
@@ -108,7 +170,16 @@ export function TopBar(props) {
   function handleItemClick(menuId, item) {
     if (item.disabled) return;
     setOpenMenu(null);
+    setOpenSubmenu(null);
     props.onMenuAction?.(menuId, item.label);
+  }
+
+  function handleSubmenuItemClick(sub) {
+    const [, setter, cbName] = RADIO_STATE[sub.radioGroup];
+    setter(sub.value);
+    props[cbName]?.(sub.value);
+    setOpenMenu(null);
+    setOpenSubmenu(null);
   }
 
   function handleSearchInput(e) {
@@ -117,44 +188,62 @@ export function TopBar(props) {
     props.onSearch?.(value);
   }
 
+  /* god this SUCKS!!! */
   return (
     <div class="topbar" ref={barRef}>
       <nav class="menubar">
         <For each={MENUS}>
           {(menu) => (
             <div class="menu" classList={{ open: openMenu() === menu.id }}>
-              <button
-                type="button"
-                class="menu-trigger"
+              <button type="button" class="menu-trigger"
                 onClick={(e) => {
                   e.stopPropagation();
+                  setOpenSubmenu(null);
                   setOpenMenu((cur) => (cur === menu.id ? null : menu.id));
                 }}
                 onMouseEnter={() => {
                   setOpenMenu((cur) => (cur !== null ? menu.id : cur));
+                  setOpenSubmenu(null);
                 }}
-              >
-                {menu.label}
-              </button>
+              >{menu.label}</button>
 
               <Show when={openMenu() === menu.id}>
                 <div class="menu-dropdown">
                   <For each={menu.items}>
                     {(item) => (
-                      <Show
-                        when={!item.sep}
-                        fallback={<div class="menu-separator" />}
-                      >
-                        <div
-                          class="menu-item"
-                          classList={{ disabled: item.disabled }}
-                          onClick={() => handleItemClick(menu.id, item)}
+                      <Show when={!item.sep} fallback={<div class="menu-separator" />}>
+                        <Show when={item.submenu} fallback={
+                            <div class="menu-item" classList={{ disabled: item.disabled }}
+                              onMouseEnter={() => setOpenSubmenu(null)}
+                              onClick={() => handleItemClick(menu.id, item)}
+                            >
+                              <span>{item.label}</span>
+                              <Show when={item.shortcut}>
+                                <span class="shortcut">{item.shortcut}</span>
+                              </Show>
+                            </div>
+                          }
                         >
-                          <span>{item.label}</span>
-                          <Show when={item.shortcut}>
-                            <span class="shortcut">{item.shortcut}</span>
-                          </Show>
-                        </div>
+                          <div class="menu-item submenu-trigger" classList={{ open: openSubmenu() === subKey(menu.id, item.label) }} onMouseEnter={() => setOpenSubmenu(subKey(menu.id, item.label))}>
+                            <span>{item.label}</span>
+                            <span class="shortcut">›</span>
+
+                            <Show when={openSubmenu() === subKey(menu.id, item.label)}>
+                              <div class="menu-dropdown submenu-dropdown">
+                                <For each={item.submenu}>
+                                  {(sub) => (
+                                    <div class="menu-item" onClick={() => handleSubmenuItemClick(sub)}>
+                                      <span>
+                                        <span class="check">{isChecked(sub) ? "•" : ""}</span>
+                                        {sub.label}
+                                      </span>
+                                    </div>
+                                  )}
+                                </For>
+                              </div>
+                            </Show>
+                          </div>
+                        </Show>
                       </Show>
                     )}
                   </For>

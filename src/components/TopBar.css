@@ -153,3 +153,19 @@
 .search-input::placeholder {
   color: var(--text-faint);
 }
+
+.submenu-trigger {
+  position: relative;
+}
+ 
+.submenu-dropdown {
+  top: -6px;
+  left: 100%;
+  margin-left: 4px;
+}
+ 
+.menu-item .check {
+  display: inline-block;
+  width: 14px;
+  flex: none;
+}
