@@ -7,6 +7,9 @@ pub fn run() {
     #[cfg(target_os = "linux")]
     std::env::set_var("__NV_DISABLE_EXPLICIT_SYNC", "1");
 
+    // start threads
+    device::looper();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![device::scan_for_devices])

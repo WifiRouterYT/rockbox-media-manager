@@ -1,7 +1,8 @@
 use sysinfo::Disks;
 use serde::Serialize;
-use std::path::Path;
+use std::{path::Path, thread::sleep, time::Duration};
 use bytesize::ByteSize;
+use std::thread;
 
 #[derive(Clone, Serialize)]
 pub struct Device {
@@ -13,8 +14,6 @@ pub struct Device {
 
 #[tauri::command]
 pub fn scan_for_devices() -> Vec<Device> {
-    println!("Support hotplug? {}", rusb::has_hotplug());
-
     println!("Scanning for Rockbox devices...");
     
     let mut results = Vec::new();
@@ -49,4 +48,15 @@ pub fn scan_for_devices() -> Vec<Device> {
         println!("No Rockbox devices found.");
     }
     results
+}
+
+pub fn looper() {
+    thread::spawn(|| {
+        loop {
+                println!("Iteration");
+                scan_for_devices();
+
+                sleep(Duration::from_secs(3));
+        }
+    });
 }
