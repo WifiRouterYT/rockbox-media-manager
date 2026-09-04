@@ -1,8 +1,10 @@
-import { createSignal, For, Show, onCleanup, onMount } from "solid-js";
+import { createSignal, For, Show, onCleanup, onMount, createEffect } from "solid-js";
 import "./TopBar.css";
 
+import { listen } from '@tauri-apps/api/event';
+
 // define da menus
-const MENUS = [
+var MENUS = [
   {
     id: "file",
     label: "File",
@@ -89,7 +91,7 @@ const MENUS = [
       { label: "Find Duplicates" },
     ],
   },
-  {
+  { // 5
     id: "device",
     label: "Device",
     items: [
@@ -123,6 +125,27 @@ export function TopBar(props) {
   const [sortMode, setSortMode] = createSignal("artist");
   const [groupMode, setGroupMode] = createSignal("date_added");
   let barRef;
+
+  // device info
+  const [connectedDevice, setConnectedDevice] = createSignal(null);
+
+  listen('device-found', (event) => {
+    setConnectedDevice(event.payload);
+  });
+
+  createEffect(() => {
+    /* 
+    pub struct Device {
+      pub name: String,
+      pub mount_point: String,
+      pub total_gb: f64,
+      pub avail_gb: f64,
+      pub target: String,
+      pub firm_ver: String
+    }
+    */
+   
+  })
 
   // maps a radioGroup name -> [getter, setter, prop callback name]
   const RADIO_STATE = {

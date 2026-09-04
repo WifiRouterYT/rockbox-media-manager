@@ -4,6 +4,9 @@ import "./App.css";
 import {TopBar} from "./components/TopBar.jsx";
 import {MediaBar} from "./components/MediaBar.jsx";
 
+// side bar
+import { DeviceSelector } from "./components/sidebar/DeviceSelector.jsx";
+
 function App() {
   function handleSearch(query) {
     console.log("searching for:", query);
@@ -50,7 +53,7 @@ function App() {
       <TopBar onSearch={handleSearch} onMenuAction={handleMenuAction}/>
       <div class="container">
         <div class="sidebar" style={{ width: `${sidebarWidth()}px` }}>
-          <p>huh</p>
+          <DeviceSelector></DeviceSelector>
         </div>
         <div class="divider" onMouseDown={startDrag} />
         <div class="content">
