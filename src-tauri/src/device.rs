@@ -1,36 +1,51 @@
-use sysinfo::Disks;
-use serde::Serialize;
+use sysinfo::{Disks, DiskRefreshKind};
 use std::{path::Path, thread::sleep, time::Duration, fs::File, io::{self, BufRead}};
 use bytesize::ByteSize;
 use std::thread;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
+use std::sync::Mutex;
+use ordered_float::OrderedFloat;
 
-#[derive(Clone, Serialize)]
-pub struct Device {
-    pub name: String,
-    pub mount_point: String,
-    pub total_gb: f64,
-    pub avail_gb: f64,
-    pub target: String,
-    pub firm_ver: String
-}
+use crate::appstate;
 
 #[tauri::command]
-pub fn scan_for_devices(app: AppHandle) -> Vec<Device> {
-    //println!("Scanning for Rockbox devices...");
-    
-    let mut results = Vec::new();
-    let disks = Disks::new_with_refreshed_list();
-    for disk in disks.list() {
-        // get name & mount point (todo: test result on windows)
+pub fn scan_for_devices(app: AppHandle, refresh: bool) -> Vec<appstate::Device> {
+    let state = app.state::<Mutex<appstate::AppState>>();
+    let mut disks = Disks::new_with_refreshed_list_specifics(DiskRefreshKind::nothing());
+    let mut state = state.lock().unwrap();
+
+    // snapshot before any changes so we can detect differences at the end
+    let before: Vec<appstate::Device> = state.device_list
+        .iter()
+        .filter_map(|dm| dm.device.clone())
+        .collect();
+
+    // if full refresh specified, clear the cached device list and repopulate it
+    if refresh {
+        state.device_list.clear();
+    }
+
+    let mut found_devices: Vec<appstate::DeviceMounts> = Vec::new();
+    for disk in disks.list_mut() {
         let name = disk.name().to_string_lossy().to_string();
         let mount_point = disk.mount_point().to_string_lossy().to_string();
+        found_devices.push(appstate::DeviceMounts {name: name.clone(), mount_point: mount_point.clone(), device: None});
+
+        // already known (rockbox or not)? skip!
+        let found: bool = state.device_list.iter().any(|device| device.name.eq(&name)
+                                                        & device.mount_point.eq(&mount_point));
+        if found {continue;}
 
         // check for a .rockbox folder on root
         let rockbox_folder = Path::new(&mount_point).join(".rockbox");
-        if !rockbox_folder.exists() { continue; } // not a rockbox device, keep going
+        if !rockbox_folder.exists() {
+            // this isn't a rockbox device...
+            state.device_list.push(appstate::DeviceMounts { name, mount_point, device: None });
+            continue;
+        }
 
-        // get avail & total storage
+        // now (and only now) query storage for this disk
+        disk.refresh_specifics(DiskRefreshKind::nothing().with_storage());
         let total = disk.total_space();
         let avail = disk.available_space();
         let total_gb = (ByteSize::b(total).as_gb() * 10.0).round() / 10.0;
@@ -51,34 +66,49 @@ pub fn scan_for_devices(app: AppHandle) -> Vec<Device> {
             }
         }
 
+        let device: appstate::Device = appstate::Device 
+            {name: name.clone(), mount_point: mount_point.clone(), total_gb: OrderedFloat(total_gb.clone()), 
+             avail_gb: OrderedFloat(avail_gb.clone()), target: target.clone(), firm_ver: firm_ver.clone()};
+
+        // save this drive to appstate
+        state.device_list.push(appstate::DeviceMounts { name: name.clone(), mount_point: mount_point.clone(), device: Some(device.clone()) });
+
         // tmp for debugging
-        /*println!("Look mom I found one!");
+        println!("Look mom I found one!");
         println!(" >> Name: {}", name);
         println!(" >> Mount: {}", mount_point);
         println!(" >> Total: {}", total_gb.to_string());
-        println!(" >> Avail: {}", avail_gb.to_string());*/
+        println!(" >> Avail: {}", avail_gb.to_string());
 
-        results.push(Device {name, mount_point, total_gb, avail_gb, target, firm_ver});
+        //results.push(appstate::Device {name, mount_point, total_gb: OrderedFloat(total_gb), 
+        //                               avail_gb: OrderedFloat(avail_gb), target, firm_ver});
     }
 
-    // tmp
-    if results.len() == 0 {
-        println!("No Rockbox devices found.");
-    }
+    // remove devices no longer connected from appstate
+    state.device_list.retain(|device| {
+        found_devices.iter().any(|fd| {
+            fd.name == device.name && fd.mount_point == device.mount_point
+        })
+    });
 
-    // todo: rather than emit every 3 seconds, only emit when there is a difference from previous results
-    //       i.e. a new device is connected or device is disconnected
-    //       bonus: read files off device only on new connection, not every loop to avoid stressing disk
-    app.emit("device-found", &results).unwrap();
-    results
+    let devices: Vec<appstate::Device> = state.device_list
+        .iter()
+        .filter_map(|dm| dm.device.clone())
+        .collect();
+
+    if devices != before {
+        app.emit("device-found", &devices).unwrap();
+    }
+    devices
+    //app.emit("device-found", &results).unwrap();
+    //results
 }
 
 pub fn looper(app: AppHandle) {
     thread::spawn(move || {
         loop {
-                scan_for_devices(app.clone());
-
-                sleep(Duration::from_secs(3));
+            scan_for_devices(app.clone(), false);
+            sleep(Duration::from_secs(3));
         }
     });
 }
